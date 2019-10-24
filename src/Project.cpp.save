@@ -1,0 +1,185 @@
+#include "Project.h"
+
+using namespace std;
+
+// Globals
+long lastInterruptTime = 0;
+int RTC;
+int SPI;
+int HH;
+int MM;
+int SS;
+
+int temp        = 0;
+float voltage   = 0;
+float v_out     = 0;
+int light       = 0;
+float humidity  = 0;
+int interval    = 1;
+bool monitoring = false;
+
+int main(){
+    if(initGPIO() == -1){
+        cout << "Setup failed: initGPIO()" << endl;
+        return 0;
+    }
+    // Initialize thread with parameters
+    // give the thread priority of 99
+    pthread_attr_t tattr;
+    pthread_t thread_id;
+    int newprio = 99;
+    sched_param param;
+
+    pthread_attr_init(&tattr);
+    pthread_attr_getschedparam(&tattr, &param);
+    param.sched_priority = newprio;
+    pthread_attr_setschedparam(&tattr, &param);
+    pthread_create(&thread_id, &tattr, readFromADC, (void*)1);
+
+    // event loop
+    printf(" RTC Time | Sys Timer | Humidity | Temperature | Light | DAC out | Alarm\n");
+    printf("_____________________________________________________________________________\n");
+    
+     HH = getHours();
+     MM = getMins();
+     SS = getSecs();
+
+    for(;;){
+        // Print data to screen
+        printf(" 00:00:00 | 11:11:11  | %.1f V    | %d C        | %d     | %.2f V     |  %s   \n", humidity, temp, light, v_out, "*");
+        printf("_____________________________________________________________________________\n");
+
+        delay(interval * 1000);
+        //HH = getHours();
+        //MM = getMins();
+        //SS = getSecs();
+        
+        
+        wiringPiI2CWriteReg8(RTC,HOUR,HH);
+        wiringPiI2CWriteReg8(RTC,MIN,MM);
+        wiringPiI2CWriteReg8(RTC,SECS,SS);
+        
+
+    }
+    pthread_join(thread_id, NULL);
+    pthread_exit(NULL);
+    return 0;
+}
+/////////// Interrupt handlers /////////////////
+void start_stop_monitoring(void){
+    long interruptTime = millis();
+    if(interruptTime - lastInterruptTime > 200){
+        monitoring = !monitoring;
+        cout << "start/stop" << endl;
+    }
+    lastInterruptTime = interruptTime;
+}
+void dissmiss_alarm(void){
+    long interruptTime = millis();
+    if(interruptTime - lastInterruptTime > 200){
+        cout << "dissmiss pressed" << endl;
+    }
+    lastInterruptTime = interruptTime;
+}
+void reset_system_time(void){
+    long interruptTime = millis();
+    if(interruptTime - lastInterruptTime > 200){
+        cout << "reset system time pressed" << endl;
+    }
+    lastInterruptTime = interruptTime;
+}
+void change_reading_interval(void){
+    long interruptTime = millis();
+    if(interruptTime - lastInterruptTime > 200){
+        //cout << "change interval pressed" << endl;
+        switch(interval){
+            case 1:
+                ++interval;
+                break;
+            case 2:
+                interval = 5;
+                break;
+            default:
+                interval = 1;
+                break;
+        }
+    }
+    lastInterruptTime = interruptTime;
+}
+/////////// Setup //////////////
+int initGPIO(void){
+    wiringPiSetup();
+    // Setup buttons
+    for(size_t i = 0; i < 4;++i){
+        pinMode(BTNS[0], INPUT);
+        pullUpDnControl(BTNS[0], PUD_DOWN);
+    }
+
+    // attach interrupts to buttons
+    wiringPiISR(BTNS[0], INT_EDGE_FALLING, start_stop_monitoring);
+    wiringPiISR(BTNS[1], INT_EDGE_FALLING, dissmiss_alarm);
+    wiringPiISR(BTNS[2], INT_EDGE_FALLING, reset_system_time);
+    wiringPiISR(BTNS[3], INT_EDGE_FALLING, change_reading_interval);
+
+    // Setup RTC
+    RTC = wiringPiI2CSetup(RTCAddr);
+    if(RTC == -1){
+        cout << "Failed setup of RTC" << endl;
+        return RTC;
+    }
+
+    // Setup SPI interface for ADC
+    SPI = wiringPiSPISetup(SPI_CHAN, SPI_SPEED);
+    if(SPI == -1){
+        cout << "Failed setup of SPI interface" << endl;
+        return SPI;
+    }
+
+    // Setup ADC
+    mcp3004Setup(BASE, SPI_CHAN);
+    cout << "Setup done." << endl;
+    return 0;
+}
+///////// Thread to read from ADC //////////////
+void *readFromADC(void *threadArgs){
+    while(!monitoring)
+        continue;
+    // read from ADC iff monitoring is true
+    while(monitoring){
+        // Read temperature and convert to degrees celcius
+        temp    = analogRead(BASE);
+        voltage = ((float)temp / 1023) * 3.3;
+        temp    = ((voltage * 1000) - 500) / 10;
+
+        // Read light
+        light = analogRead(BASE + 2);
+        // Read humidity
+        humidity = analogRead(BASE + 1);
+
+        // Calculate v_out
+        v_out = (light / 1023) * humidity;
+
+        delay(interval * 1000);
+    }
+    pthread_exit(NULL);
+}
+
+
+int decCompensation(int Units){
+
+    int unitsU = units%10;
+
+    if(units >= 50){
+        units = 0x50 + unitsU;
+
+    }else if(units >= 40){
+        units = 0x40 + unitsU;
+    }
+    
+        HH = getHours();
+        MM = getMins();
+        SS = getSecs();
+
+
+
+}
