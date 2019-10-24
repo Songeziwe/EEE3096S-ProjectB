@@ -1,6 +1,6 @@
 .RECIPEPREFIX +=
 CC = g++
-CFLAGS = -Wall -lm -lrt -lwiringPi -lpthread -I ./blynk-library/linux
+CFLAGS = -Wall -lm -lrt -lwiringPi -lpthread -lmosquitto -I ./blynk-library/linux
 
 PROG = bin/*
 OBJS = obj/*
