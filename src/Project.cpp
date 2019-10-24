@@ -1,3 +1,8 @@
+/** Enviromental Logger
+  *
+  * @author SBSSON002	MBKNTS002
+  */
+
 #include "Project.h"
 
 /*
@@ -15,6 +20,12 @@ BlynkSocket Blynk(_blynkTransport);
 #include <BlynkWidgets.h>
 */
 using namespace std;
+
+// Have to subscribe only to the dissmiss and monitor topics
+// in order to dissmiss the alarm
+// monitor topic is for start/stop monitoring
+const char* dissmiss[12] = "dissmiss";
+const char* monitor[10]  = "monitor";
 
 // Globals
 long lastInterruptTime = 0;
@@ -47,7 +58,7 @@ int main(){
     if(setup() == -1){ return 0; }
     usleep(2000000); // wait 2 seconds for connection to finish
     if(subscribe() == -1){ return 0; }
-    if(publish() == -1){ return 0; }
+    //if(publish() == -1){ return 0; }
 
     // attach a message callback for handling messages from the broker
     mosquitto_message_callback_set(mosq, on_message_callback);
@@ -66,8 +77,8 @@ int main(){
     pthread_create(&thread_id, &tattr, readFromADC, (void*)1);
 
     // event loop
-    printf(" RTC Time | Sys Timer | Humidity | Temperature | Light | DAC out | Alarm\n");
-    printf("_____________________________________________________________________________\n");
+   // printf(" RTC Time | Sys Timer | Humidity | Temperature | Light | DAC out | Alarm\n");
+    //printf("_____________________________________________________________________________\n");
 
     for(;;){
         // Print data to screen 
@@ -103,7 +114,7 @@ int main(){
 
         //mins %=60;
         //secs %=60;
-        printf("%x:%x:%x",hours,mins,secs);
+       // printf("%x:%x:%x",hours,mins,secs);
         hours = wiringPiI2CReadReg8 (RTC, HOUR);
         mins  = wiringPiI2CReadReg8 (RTC, MIN);
         secs  = wiringPiI2CReadReg8 (RTC, SEC);
@@ -365,7 +376,7 @@ void systemTime(void){
 }
 
 ///////////////////////////////////////////////////////////////////
-//         FUNCTIONS FOR MANAGING MQQT COMMUNICATION
+//         FUNCTIONS FOR MANAGING MQTT COMMUNICATION
 //                  WITH THE REMOTE BROKER
 //////////////////////////////////////////////////////////////////
 
@@ -426,10 +437,31 @@ int setup(void){
 // Subscription method to the online broker
 int subscribe(void){
     int* mid        = NULL;
-    const char* sub = "testTopic";
     int qos         = 0;
-    int feedback = mosquitto_subscribe(mosq, mid, sub, qos);
-    switch(feedback){
+    int feedback1 = mosquitto_subscribe(mosq, mid, dissmiss, qos);
+    int feedback2 = mosquitto_subscribe(mosq, mid, monitor, qos);
+
+    switch(feedback1){
+        case MOSQ_ERR_SUCCESS:
+            cout << "Subscription is successfully." << endl;
+            break;
+        case MOSQ_ERR_INVAL:
+            cout << "Subscription parameters were invalid." << endl;
+            return -1;
+        case MOSQ_ERR_NOMEM:
+            cout << "Out of memory condition occurred during subscription." << endl;
+            return -1;
+        case MOSQ_ERR_NO_CONN:
+            cout << "Client is not connected to broker." << endl;
+            return -1;
+        case MOSQ_ERR_MALFORMED_UTF8:
+            cout << "Subscriptin: Topic is not valid UTF-8" << endl;
+            return -1;
+        default:
+            cout << "Subscription: Some other error occerred." << endl;
+            return -1;
+    }
+    switch(feedback2){
         case MOSQ_ERR_SUCCESS:
             cout << "Subscription is successfully." << endl;
             break;
@@ -451,10 +483,12 @@ int subscribe(void){
     }
     return 0;
 }
+
 // For message from the broker
 void on_message_callback(struct mosquitto *, void *, const struct mosquitto_message* message){
     printf("Message from the broker with topic %s is %s\n", message->topic, (char*)message->payload);
 }
+
 // Publish method to the online broker
 int publish(void){
     char payload[50] = "Zibondiwe";

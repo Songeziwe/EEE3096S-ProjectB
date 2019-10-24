@@ -30,8 +30,10 @@
 #define USERNAME "xkxabjtv"
 #define PASSWORD "aY6G1txTZr-q"
 
+// mosquitto instance
 struct mosquitto* mosq;
-char topic[50] = "testTopic";
+
+
 
 // Functions to manage communication with the remote broker
 int setup(void);
