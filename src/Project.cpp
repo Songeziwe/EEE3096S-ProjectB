@@ -24,8 +24,8 @@ using namespace std;
 // Have to subscribe only to the dissmiss and monitor topics
 // in order to dissmiss the alarm
 // monitor topic is for start/stop monitoring
-const char* dissmiss[12] = "dissmiss";
-const char* monitor[10]  = "monitor";
+const char* dissmiss = "dissmiss";
+const char* monitor  = "monitor";
 
 // Globals
 long lastInterruptTime = 0;
