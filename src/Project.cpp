@@ -496,7 +496,7 @@ int publish(void){
     int qos = 0;
     bool retain = false;
     int* mid = NULL;
-    int feedback = mosquitto_publish(mosq, mid, topic, payloadlen, payload, qos, retain);
+    int feedback = mosquitto_publish(mosq, mid, dissmiss, payloadlen, payload, qos, retain);
     switch(feedback){
         case MOSQ_ERR_SUCCESS:
             cout << "Publish is successfully." << endl;
