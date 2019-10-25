@@ -36,11 +36,12 @@ int hours = 0;
 int mins  = 0;
 int secs  = 0;
 
-int temp        = 0;
+int temp = 1;
 float voltage   = 0;
 float v_out     = 0;
-int light       = 0;
-int humidity  = 0;
+int light       = 2;
+float humidity    = 3;
+
 int interval    = 1;
 bool monitoring = false;
 bool restarted = false;
@@ -55,13 +56,12 @@ int main(){
         return 0;
     }
     // Setup MQTT
-    if(setup() == -1){ return 0; }
+    /*if(setup() == -1){ return 0; }
     usleep(2000000); // wait 2 seconds for connection to finish
     if(subscribe() == -1){ return 0; }
-    if(publish() == -1){ return 0; }
-
+    */
     // attach a message callback for handling messages from the broker
-    mosquitto_message_callback_set(mosq, on_message_callback);
+   /// mosquitto_message_callback_set(mosq, on_message_callback);
 
     // Initialize thread with parameters
     // give the thread priority of 99
@@ -82,16 +82,17 @@ int main(){
 
     for(;;){
         // Print data to screen 
-        /*if((v_out < 0.65 || v_out > 2.65) && !dissmissed){
+        if((v_out < 0.65 || v_out > 2.65) && !dissmissed){
              printf(" | %d:%d:%d  | %.1f V    | %d C        | %d     | %.2f V     |  %s   \n", hour, minutes, seconds, humidity, temp, light, v_out, "*");
              printf("_____________________________________________________________________________\n");
              lightLED(secs);
         }else{
             printf(" | %d:%d:%d  | %.1f V    | %d C        | %d     | %.2f V     |  %s   \n", hour, minutes, seconds, humidity, temp, light, v_out, "");
             printf("_____________________________________________________________________________\n");
-        }*/
+        }
         //wiringPiI2CRead(RTC);
         //int wiringPiI2CReadReg8 (int fd, int reg);
+	//if(publish() == -1){ return 0; }
         systemTime();
         //if(!restarted){ 
             hours = getHours();
@@ -124,7 +125,7 @@ int main(){
         delay(interval + 1000);
     } // END OF EVENT LOOP
 
-    switch(mosquitto_loop_stop(mosq, false)){
+    /*switch(mosquitto_loop_stop(mosq, false)){
          case MOSQ_ERR_SUCCESS:
             cout << "Mosquitto loop stopped successfully." << endl;
             break;
@@ -139,7 +140,7 @@ int main(){
             return -1;
     }
     mosquitto_destroy(mosq);
-    mosquitto_lib_cleanup();
+    mosquitto_lib_cleanup();*/
 
     pthread_join(thread_id, NULL);
     pthread_exit(NULL);
@@ -491,22 +492,25 @@ void on_message_callback(struct mosquitto *, void *, const struct mosquitto_mess
 
 // Publish method to the online broker
 int publish(void){
-    int humidity_value = 23;
-    char humid_payload[5];
-    //char payload[50] = "Zibondiwe";
-    //int payloadlen = strlen(humid_payload);
+    char humid_payload[12];
+    char temp_payload[5];
+    char light_payload[5];
 
-    //itoa(humid_payload, humidity_value, 10);
-    sprintf(humid_payload, "%d", humidity_value);
-    //char payload[50] = "Zibondiwe";
-    int payloadlen = strlen(humid_payload);
-    //char payload[50] = "Zibondiwe";
-    //int payloadlen = strlen(humid_payload);
+    sprintf(humid_payload, "%.3f", humidity);
+    sprintf(temp_payload, "%d", temp);
+    sprintf(light_payload, "%d", light);
+
+    int humid_payloadlen = strlen(humid_payload);
+    int temp_payloadlen = strlen(temp_payload);
+    int light_payloadlen = strlen(light_payload);
 
     int qos = 0;
     bool retain = false;
     int* mid = NULL;
-    int feedback = mosquitto_publish(mosq, mid, dissmiss, payloadlen, humid_payload, qos, retain);
+    int feedback = mosquitto_publish(mosq, mid, humidityTopic, humid_payloadlen, humid_payload, qos, retain);
+    int feedback2 = mosquitto_publish(mosq, mid, lightTopic, light_payloadlen, light_payload, qos, retain);
+    int feedback3 = mosquitto_publish(mosq, mid, tempTopic, temp_payloadlen, temp_payload, qos, retain);
+
     switch(feedback){
         case MOSQ_ERR_SUCCESS:
             cout << "Publish is successfully." << endl;

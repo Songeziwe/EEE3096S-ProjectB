@@ -37,7 +37,10 @@
 // mosquitto instance
 struct mosquitto* mosq;
 
-
+// Topics for publishing
+const char* lightTopic = "light";
+const char* tempTopic = "temperature";
+const char* humidityTopic = "humidity";
 
 // Functions to manage communication with the remote broker
 int setup(void);
