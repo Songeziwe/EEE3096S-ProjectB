@@ -58,7 +58,7 @@ int main(){
     if(setup() == -1){ return 0; }
     usleep(2000000); // wait 2 seconds for connection to finish
     if(subscribe() == -1){ return 0; }
-    //if(publish() == -1){ return 0; }
+    if(publish() == -1){ return 0; }
 
     // attach a message callback for handling messages from the broker
     mosquitto_message_callback_set(mosq, on_message_callback);
@@ -491,12 +491,22 @@ void on_message_callback(struct mosquitto *, void *, const struct mosquitto_mess
 
 // Publish method to the online broker
 int publish(void){
-    char payload[50] = "Zibondiwe";
-    int payloadlen = strlen(payload);
+    int humidity_value = 23;
+    char humid_payload[5];
+    //char payload[50] = "Zibondiwe";
+    //int payloadlen = strlen(humid_payload);
+
+    //itoa(humid_payload, humidity_value, 10);
+    sprintf(humid_payload, "%d", humidity_value);
+    //char payload[50] = "Zibondiwe";
+    int payloadlen = strlen(humid_payload);
+    //char payload[50] = "Zibondiwe";
+    //int payloadlen = strlen(humid_payload);
+
     int qos = 0;
     bool retain = false;
     int* mid = NULL;
-    int feedback = mosquitto_publish(mosq, mid, dissmiss, payloadlen, payload, qos, retain);
+    int feedback = mosquitto_publish(mosq, mid, dissmiss, payloadlen, humid_payload, qos, retain);
     switch(feedback){
         case MOSQ_ERR_SUCCESS:
             cout << "Publish is successfully." << endl;

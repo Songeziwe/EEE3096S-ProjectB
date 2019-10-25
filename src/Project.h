@@ -4,12 +4,15 @@
 // Includes
 #include <iostream>
 #include <stdio.h>
+#include <cstdio>
+#include <stdlib.h>
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 #include <wiringPiSPI.h>
 #include <mcp3004.h>
 #include <pthread.h>
 #include <sched.h>
+#include <sstream>
 #include "CurrentTime.h"
 
 // For MQTT
@@ -17,6 +20,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <cstring>
+#include <string>
 
 // MACROS
 #define BASE 100
